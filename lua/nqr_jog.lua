@@ -55,6 +55,15 @@ local function can_move(s)
 	return s._move_dir ~= nil and mvector3.length(s._move_dir) >= 0.01
 end
 
+local function can_slow(s)
+	local d = s._state_data
+
+	if blocks_run(s) then return false end
+	if d and (d.in_air or d.on_ladder or d.lying) then return false end
+
+	return s._move_dir ~= nil and mvector3.length(s._move_dir) >= 0.01
+end
+
 local function moving_forward(s)
 	if s._can_run_directional then return s:_can_run_directional() and true or false end
 
@@ -132,11 +141,6 @@ local function handle_input(self, t, dt, paused)
 	if pressed then jog._break = false end
 
 	jog.slow = alt_held()
-
-	if jog.debug and jog.slow ~= jog.last_slow then
-		jog.last_slow = jog.slow
-		log("[nqr_jog] slow=" .. tostring(jog.slow))
-	end
 
 	local window = jog.double_tap or DOUBLE_TAP
 	local sprint, gap
@@ -220,7 +224,24 @@ local function handle_input(self, t, dt, paused)
 		if not self._running then self:_start_action_running(t) end
 	else
 		self._running_wanted = false
-		if self._running then self:_end_action_running(t) end
+
+		if self._running then
+			if jog.slow then
+				self._end_running_expire_t = nil
+				self:set_running(false)
+			else
+				self:_end_action_running(t)
+			end
+		end
+	end
+
+	if jog.debug and (jog.slow ~= jog.last_slow or (self._running or false) ~= (jog.last_running or false)) then
+		jog.last_slow = jog.slow
+		jog.last_running = self._running or false
+		log("[nqr_jog] slow=" .. tostring(jog.slow) .. " running=" .. tostring(self._running or false)
+			.. " jog=" .. tostring(jog.enabled) .. " sprint=" .. tostring(sprint and true or false)
+			.. " mode=" .. tostring(rs.mode) .. " hold_sprint=" .. tostring(rs.hold_sprint)
+			.. " move=" .. tostring(self._move_dir ~= nil and mvector3.length(self._move_dir) >= 0.01))
 	end
 
 	if not paused then drain_stamina(self, dt) end
@@ -234,7 +255,7 @@ Hooks:PostHook(PlayerStandard, "_get_max_walk_speed", "nqr_jog_get_max_walk_spee
 	local v = Hooks:GetReturn()
 
 	if force_run then return v end
-	if jog.slow and can_move(self) then return v * (jog.slow_speed_multiplier or SLOW_SPEED) end
+	if jog.slow and can_slow(self) then return v * (jog.slow_speed_multiplier or SLOW_SPEED) end
 	if can_jog(self) then return v * (jog.speed_multiplier or SPEED) end
 
 	return v
@@ -243,7 +264,7 @@ end)
 Hooks:PostHook(PlayerStandard, "_get_walk_headbob", "nqr_jog_get_walk_headbob", function(self)
 	local h = Hooks:GetReturn()
 
-	if jog.slow and can_move(self) then return h * (jog.slow_headbob_multiplier or SLOW_HEADBOB) end
+	if jog.slow and can_slow(self) then return h * (jog.slow_headbob_multiplier or SLOW_HEADBOB) end
 	if can_jog(self) then return h * (jog.headbob_multiplier or HEADBOB) end
 
 	return h
