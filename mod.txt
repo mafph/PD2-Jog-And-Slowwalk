@@ -2,7 +2,7 @@
 	"name" : "NQR Jog",
 	"description" : "Adds a jog between walking and sprinting. Tap the run key to jog, double tap to sprint, hold the slow walk key to move slower with reduced headbob. Aiming cancels the run.",
 	"author" : "Marcos",
-	"version" : "3.15",
+	"version" : "3.16",
 	"blt_version" : 2,
 	"needs_restart" : true,
 
@@ -11,7 +11,6 @@
 			"keybind_id" : "nqr_jog_slow_walk",
 			"name" : "Slow walk key",
 			"description" : "Hold this key to move slower with reduced headbob.",
-			"script_path" : "lua/nqr_jog_slow_key.lua",
 			"run_in_menu" : false,
 			"run_in_game" : true,
 			"localized" : false
