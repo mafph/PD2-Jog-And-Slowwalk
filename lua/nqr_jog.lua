@@ -227,6 +227,7 @@ local function handle_input(self, t, dt, paused)
 
 		if self._running then
 			if jog.slow then
+				self:_end_action_running(t)
 				self._end_running_expire_t = nil
 				self:set_running(false)
 			else
