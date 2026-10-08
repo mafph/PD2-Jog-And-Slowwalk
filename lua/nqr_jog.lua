@@ -12,6 +12,7 @@ jog.debug = true
 jog.slow = false
 jog.slow_cancel = jog.slow_cancel ~= false
 jog.reload_jog = jog.reload_jog == true
+jog.lmb_cancel = jog.lmb_cancel == true
 
 local function blocks_run(s)
 	local c = rawget(_G, "PlayerMaskOff")
@@ -195,7 +196,7 @@ local function handle_input(self, t, dt, paused)
 
 	local weap = self._equipped_unit and self._equipped_unit:base()
 
-	if not pressed and (input.btn_primary_attack_state or self._shooting) and not (weap and weap.run_and_shoot_allowed and weap:run_and_shoot_allowed()) then
+	if jog.lmb_cancel and not pressed and (input.btn_primary_attack_state or self._shooting) and not (weap and weap.run_and_shoot_allowed and weap:run_and_shoot_allowed()) then
 		rs.hold_sprint, sprint = false, false
 		rs.mode, jog.enabled = 0, false
 		jog._break = true

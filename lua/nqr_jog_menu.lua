@@ -9,6 +9,7 @@ jog.keybind_id = "nqr_jog_slow_walk"
 jog.double_tap = jog.double_tap or 0.2
 jog.slow_cancel = jog.slow_cancel ~= false
 jog.reload_jog = jog.reload_jog == true
+jog.lmb_cancel = jog.lmb_cancel == true
 
 local SAVE_FILE = SavePath .. "nqr_jog.json"
 
@@ -21,12 +22,13 @@ local function load_settings()
 	if tonumber(data.double_tap) then jog.double_tap = tonumber(data.double_tap) end
 	if data.slow_cancel ~= nil then jog.slow_cancel = data.slow_cancel and true or false end
 	if data.reload_jog ~= nil then jog.reload_jog = data.reload_jog and true or false end
+	if data.lmb_cancel ~= nil then jog.lmb_cancel = data.lmb_cancel and true or false end
 end
 
 local function save_settings()
 	local f = io.open(SAVE_FILE, "w")
 	if not f then return end
-	f:write(json.encode({ double_tap = jog.double_tap, slow_cancel = jog.slow_cancel, reload_jog = jog.reload_jog }))
+	f:write(json.encode({ double_tap = jog.double_tap, slow_cancel = jog.slow_cancel, reload_jog = jog.reload_jog, lmb_cancel = jog.lmb_cancel }))
 	f:close()
 end
 
@@ -60,6 +62,11 @@ Hooks:Add("MenuManagerInitialize", "nqr_jog_menu_initialize", function()
 
 	MenuCallbackHandler.nqr_jog_reload_jog_callback = function(_, item)
 		jog.reload_jog = item:value() == "on"
+		save_settings()
+	end
+
+	MenuCallbackHandler.nqr_jog_lmb_cancel_callback = function(_, item)
+		jog.lmb_cancel = item:value() == "on"
 		save_settings()
 	end
 
@@ -111,6 +118,17 @@ Hooks:Add("MenuManagerPopulateCustomMenus", "nqr_jog_menu_populate", function()
 		value = jog.reload_jog,
 		menu_id = MENU_ID,
 		priority = 3,
+		localized = false
+	})
+
+	MenuHelper:AddToggle({
+		id = "nqr_jog_lmb_cancel",
+		title = "LMB cancels running",
+		desc = "Fire ends the current run like in vanilla.",
+		callback = "nqr_jog_lmb_cancel_callback",
+		value = jog.lmb_cancel,
+		menu_id = MENU_ID,
+		priority = 4,
 		localized = false
 	})
 end)
