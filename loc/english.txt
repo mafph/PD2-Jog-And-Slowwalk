@@ -1,6 +1,0 @@
-{
-	"nqr_jog_menu_title" : "NQR Jog",
-	"nqr_jog_menu_desc" : "Jog and sprint settings",
-	"nqr_jog_double_tap_title" : "Double tap window",
-	"nqr_jog_double_tap_desc" : "Seconds between two run key taps that count as a sprint."
-}
