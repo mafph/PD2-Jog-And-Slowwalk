@@ -8,7 +8,6 @@ jog.headbob_multiplier = jog.headbob_multiplier or HEADBOB
 jog.slow_speed_multiplier = jog.slow_speed_multiplier or SLOW_SPEED
 jog.slow_headbob_multiplier = jog.slow_headbob_multiplier or SLOW_HEADBOB
 jog.double_tap = jog.double_tap or DOUBLE_TAP
-jog.debug = false
 jog.slow = false
 jog.slow_cancel = jog.slow_cancel ~= false
 jog.reload_jog = jog.reload_jog == true
@@ -98,12 +97,6 @@ local function handle_input(self, t, dt, paused)
 		return input
 	end
 
-	if not jog.active then
-		jog.active = true
-		log("[nqr_jog] hold_to_run=" .. tostring(self._setting_hold_to_run and true or false) .. " "
-			.. (self._setting_hold_to_run and "hold run = jog, double tap = sprint" or "toggle: tap = jog, double tap = sprint"))
-	end
-
 	if blocks_run(self) then
 		jog.enabled = false
 		self._running_wanted = false
@@ -133,11 +126,6 @@ local function handle_input(self, t, dt, paused)
 
 	jog.slow = alt_held()
 
-	if jog.debug and jog.slow ~= jog.last_slow then
-		jog.last_slow = jog.slow
-		log("[nqr_jog] slow=" .. tostring(jog.slow))
-	end
-
 	local window = jog.double_tap or DOUBLE_TAP
 	local sprint, gap
 
@@ -159,11 +147,6 @@ local function handle_input(self, t, dt, paused)
 
 		jog.enabled = rs.mode == 1
 		sprint = rs.mode == 2
-	end
-
-	if jog.debug and pressed then
-		log("[nqr_jog] " .. (self._setting_hold_to_run and "hold" or "toggle") .. " mode=" .. tostring(rs.mode)
-			.. " sprint=" .. tostring(sprint) .. " gap=" .. tostring(gap) .. " slow=" .. tostring(jog.slow))
 	end
 
 	if (input.btn_steelsight_press or input.btn_steelsight_state) and (jog.enabled or sprint) and not run_and_shoot(self) then

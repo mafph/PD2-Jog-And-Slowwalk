@@ -2,7 +2,7 @@
 	"name" : "NQR Jog",
 	"description" : "Adds a jog between walking and sprinting. Tap the run key to jog, double tap to sprint, hold the slow walk key to move slower with reduced headbob. Aiming cancels the run.",
 	"author" : "Marcos",
-	"version" : "3.14",
+	"version" : "3.15",
 	"blt_version" : 2,
 	"needs_restart" : true,
 
