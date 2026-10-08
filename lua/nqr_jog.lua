@@ -8,7 +8,7 @@ jog.headbob_multiplier = jog.headbob_multiplier or HEADBOB
 jog.slow_speed_multiplier = jog.slow_speed_multiplier or SLOW_SPEED
 jog.slow_headbob_multiplier = jog.slow_headbob_multiplier or SLOW_HEADBOB
 jog.double_tap = jog.double_tap or DOUBLE_TAP
-jog.debug = true
+jog.debug = false
 jog.slow = false
 jog.slow_cancel = jog.slow_cancel ~= false
 jog.reload_jog = jog.reload_jog == true
@@ -133,7 +133,7 @@ local function handle_input(self, t, dt, paused)
 
 	jog.slow = alt_held()
 
-	if jog.slow ~= jog.last_slow then
+	if jog.debug and jog.slow ~= jog.last_slow then
 		jog.last_slow = jog.slow
 		log("[nqr_jog] slow=" .. tostring(jog.slow))
 	end
