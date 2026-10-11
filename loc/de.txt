@@ -1,12 +1,12 @@
 {
-	"nqr_jog_menu_title" : "NQR Jog",
-	"nqr_jog_menu_desc" : "Jog- und Sprint-Einstellungen",
-	"nqr_jog_double_tap_title" : "Doppeltipp-Fenster",
-	"nqr_jog_double_tap_desc" : "Sekunden zwischen zwei Läufer-Tasten-Drücken, die als Sprint zählen.",
-	"nqr_jog_slow_cancel_title" : "Slow-Walk bricht Lauf ab",
-	"nqr_jog_slow_cancel_desc" : "Halte die Slow-Taste, um Jog und Sprint zu brechen statt zu pausieren.",
-	"nqr_jog_reload_jog_title" : "Nach Reload weiterjoggen",
-	"nqr_jog_reload_jog_desc" : "Wenn ein Reload den Sprint stoppt, weiterjoggen statt stillstehen.",
-	"nqr_jog_lmb_cancel_title" : "LMB bricht Lauf ab",
-	"nqr_jog_lmb_cancel_desc" : "Feuer beendet den aktuellen Lauf wie im Vanilla."
+	"jog_slow_walk_menu_title" : "Jog & Slow Walk",
+	"jog_slow_walk_menu_desc" : "Jog- und Sprint-Einstellungen",
+	"jog_slow_walk_double_tap_title" : "Doppeltipp-Fenster",
+	"jog_slow_walk_double_tap_desc" : "Sekunden zwischen zwei Läufer-Tasten-Drücken, die als Sprint zählen.",
+	"jog_slow_walk_slow_cancel_title" : "Slow-Walk bricht Lauf ab",
+	"jog_slow_walk_slow_cancel_desc" : "Halte die Slow-Taste, um Jog und Sprint zu brechen statt zu pausieren.",
+	"jog_slow_walk_reload_jog_title" : "Nach Reload weiterjoggen",
+	"jog_slow_walk_reload_jog_desc" : "Wenn ein Reload den Sprint stoppt, weiterjoggen statt stillstehen.",
+	"jog_slow_walk_lmb_cancel_title" : "LMB bricht Lauf ab",
+	"jog_slow_walk_lmb_cancel_desc" : "Feuer beendet den aktuellen Lauf wie im Vanilla."
 }

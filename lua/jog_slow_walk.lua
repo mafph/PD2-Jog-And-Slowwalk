@@ -1,8 +1,8 @@
 local SPEED, HEADBOB, STAMINA, DOUBLE_TAP = 1.35, 1.5, 0.5, 0.2
 local SLOW_SPEED, SLOW_HEADBOB = 0.7, 0.25
 
-local jog = rawget(_G, "NQR_JOG") or {}
-_G.NQR_JOG = jog
+local jog = rawget(_G, "JOG_SLOW_WALK") or {}
+_G.JOG_SLOW_WALK = jog
 jog.speed_multiplier = jog.speed_multiplier or SPEED
 jog.headbob_multiplier = jog.headbob_multiplier or HEADBOB
 jog.slow_speed_multiplier = jog.slow_speed_multiplier or SLOW_SPEED
@@ -20,29 +20,74 @@ local function blocks_run(s)
 	return c ~= nil and getmetatable(s) == c
 end
 
-local ALT_KEY = "left alt"
+local SLOW_BIND_ID = "jog_slow_walk_key"
+local key_cache, bind_cache = {}, nil
+
+-- Idstring und Key-Typ werden pro Tastenname nur einmal berechnet
+local function key_info(key)
+	local info = key_cache[key]
+
+	if not info then
+		local mouse = string.find(key, "mouse ") == 1
+		local wheel = mouse and string.find(key, "wheel") ~= nil
+
+		info = { mouse = mouse, wheel = wheel, id = Idstring((mouse and not wheel) and key:sub(7) or key) }
+		key_cache[key] = info
+	end
+
+	return info
+end
 
 local function key_down(key)
 	if not key or key == "" then return false end
 
-	if string.find(key, "mouse ") == 1 then
-		if not string.find(key, "wheel") then key = key:sub(7) end
+	local info = key_info(key)
+	local dev = info.mouse and Input:mouse() or Input:keyboard()
 
-		return Input:mouse():pressed(Idstring(key)) and true or false
-	end
+	-- Mausrad ist ein Einzel-Event, alles andere wird gehalten
+	if info.wheel then return dev:pressed(info.id) and true or false end
 
-	local kb, id = Input:keyboard(), Idstring(key)
-
-	return (kb:down(id) or kb:pressed(id)) and true or false
+	return (dev:down(info.id) or dev:pressed(info.id)) and true or false
 end
 
 local function alt_held()
-	if key_down(ALT_KEY) then return true end
+	if not bind_cache and BLT.Keybinds then
+		bind_cache = BLT.Keybinds:get_keybind(jog.keybind_id or SLOW_BIND_ID)
+	end
 
-	local b = BLT.Keybinds and BLT.Keybinds:get_keybind(jog.keybind_id or "nqr_jog_slow_walk")
-	local k = b and b:Key()
+	local k = bind_cache and bind_cache:Key()
 
-	return k ~= nil and k ~= "" and k ~= ALT_KEY and key_down(k)
+	return k ~= nil and k ~= "" and key_down(k)
+end
+
+-- Pro Frame gecachte Lookups (wird am Anfang von handle_input geleert)
+local frame = {}
+
+local function reset_frame()
+	frame.no_run, frame.carry = nil, nil
+end
+
+local function no_run_rule()
+	if frame.no_run == nil then
+		frame.no_run = managers.player:get_player_rule("no_run") and true or false
+	end
+
+	return frame.no_run
+end
+
+-- Schwere Taschen (can_run = false) duerfen nicht gejoggt/gesprintet werden.
+-- Wir rufen _start_action_running selbst auf und umgehen damit die Vanilla-Pruefung.
+local function carry_blocks_run(s)
+	if frame.carry == nil then
+		local name = s._tweak_data_name
+		local types = tweak_data.carry and tweak_data.carry.types
+		local ct = name and types and types[name]
+
+		frame.carry = ct ~= nil and not ct.can_run
+			and not managers.player:has_category_upgrade("carry", "movement_penalty_nullifier")
+	end
+
+	return frame.carry
 end
 
 local function can_move(s)
@@ -51,7 +96,7 @@ local function can_move(s)
 	if blocks_run(s) or s._running or s._slowdown_run_prevent then return false end
 	if d and (d.in_air or d.on_ladder or d.lying) then return false end
 	if d and d.ducking and not jog.slow then return false end
-	if managers.player:get_player_rule("no_run") then return false end
+	if carry_blocks_run(s) or no_run_rule() then return false end
 
 	return s._move_dir ~= nil and mvector3.length(s._move_dir) >= 0.01
 end
@@ -77,7 +122,7 @@ local function can_jog(s)
 	return jog.enabled and can_move(s) and moving_forward(s)
 end
 
-local function nqr_ok(s)
+local function compat_ok(s)
 	return not s._state_data.lying and s._start_action_running ~= nil and s._end_action_running ~= nil
 		and s._tweak_data ~= nil and s._tweak_data.movement ~= nil and s._tweak_data.movement.speed ~= nil
 end
@@ -102,7 +147,9 @@ local function handle_input(self, t, dt, paused)
 
 	if not input then return nil end
 
-	if not nqr_ok(self) then
+	reset_frame()
+
+	if not compat_ok(self) then
 		jog.enabled = false
 
 		return input
@@ -110,7 +157,7 @@ local function handle_input(self, t, dt, paused)
 
 	if not jog.active then
 		jog.active = true
-		log("[nqr_jog] hold_to_run=" .. tostring(self._setting_hold_to_run and true or false) .. " "
+		log("[jog_slow_walk] hold_to_run=" .. tostring(self._setting_hold_to_run and true or false) .. " "
 			.. (self._setting_hold_to_run and "hold run = jog, double tap = sprint" or "toggle: tap = jog, double tap = sprint"))
 	end
 
@@ -122,11 +169,11 @@ local function handle_input(self, t, dt, paused)
 		return input
 	end
 
-	local rs = self._nqr_jog_run
+	local rs = self._jog_slow_walk_run
 
 	if not rs then
 		rs = { tap_t = nil, hold_sprint = false, mode = 0 }
-		self._nqr_jog_run = rs
+		self._jog_slow_walk_run = rs
 	end
 
 	if self._move_dir == nil or mvector3.length(self._move_dir) < 0.01 then
@@ -167,7 +214,7 @@ local function handle_input(self, t, dt, paused)
 	end
 
 	if jog.debug and pressed then
-		log("[nqr_jog] " .. (self._setting_hold_to_run and "hold" or "toggle") .. " mode=" .. tostring(rs.mode)
+		log("[jog_slow_walk] " .. (self._setting_hold_to_run and "hold" or "toggle") .. " mode=" .. tostring(rs.mode)
 			.. " sprint=" .. tostring(sprint) .. " gap=" .. tostring(gap) .. " slow=" .. tostring(jog.slow))
 	end
 
@@ -221,6 +268,11 @@ local function handle_input(self, t, dt, paused)
 		sprint = stand and sprinting and not jog.slow
 	end
 
+	if carry_blocks_run(self) then
+		rs.mode, rs.hold_sprint = 0, false
+		jog.enabled, sprint = false, false
+	end
+
 	if sprint then
 		if not self._running then self:_start_action_running(t) end
 	else
@@ -240,7 +292,7 @@ local function handle_input(self, t, dt, paused)
 	if jog.debug and (jog.slow ~= jog.last_slow or (self._running or false) ~= (jog.last_running or false)) then
 		jog.last_slow = jog.slow
 		jog.last_running = self._running or false
-		log("[nqr_jog] slow=" .. tostring(jog.slow) .. " running=" .. tostring(self._running or false)
+		log("[jog_slow_walk] slow=" .. tostring(jog.slow) .. " running=" .. tostring(self._running or false)
 			.. " jog=" .. tostring(jog.enabled) .. " sprint=" .. tostring(sprint and true or false)
 			.. " mode=" .. tostring(rs.mode) .. " hold_sprint=" .. tostring(rs.hold_sprint)
 			.. " move=" .. tostring(self._move_dir ~= nil and mvector3.length(self._move_dir) >= 0.01))
@@ -251,9 +303,9 @@ local function handle_input(self, t, dt, paused)
 	return input
 end
 
-Hooks:PostHook(PlayerStandard, "_get_input", "nqr_jog_get_input", handle_input)
+Hooks:PostHook(PlayerStandard, "_get_input", "jog_slow_walk_get_input", handle_input)
 
-Hooks:PostHook(PlayerStandard, "_get_max_walk_speed", "nqr_jog_get_max_walk_speed", function(self, t, force_run)
+Hooks:PostHook(PlayerStandard, "_get_max_walk_speed", "jog_slow_walk_get_max_walk_speed", function(self, t, force_run)
 	local v = Hooks:GetReturn()
 
 	if force_run then return v end
@@ -263,7 +315,7 @@ Hooks:PostHook(PlayerStandard, "_get_max_walk_speed", "nqr_jog_get_max_walk_spee
 	return v
 end)
 
-Hooks:PostHook(PlayerStandard, "_get_walk_headbob", "nqr_jog_get_walk_headbob", function(self)
+Hooks:PostHook(PlayerStandard, "_get_walk_headbob", "jog_slow_walk_get_walk_headbob", function(self)
 	local h = Hooks:GetReturn()
 
 	if jog.slow and can_slow(self) then return h * (jog.slow_headbob_multiplier or SLOW_HEADBOB) end
