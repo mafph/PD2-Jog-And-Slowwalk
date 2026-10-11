@@ -1,0 +1,12 @@
+{
+	"nqr_jog_menu_title" : "NQR Jog",
+	"nqr_jog_menu_desc" : "Jog and sprint settings",
+	"nqr_jog_double_tap_title" : "Double tap window",
+	"nqr_jog_double_tap_desc" : "Seconds between two run key taps that count as a sprint.",
+	"nqr_jog_slow_cancel_title" : "Slow walk cancels run",
+	"nqr_jog_slow_cancel_desc" : "Hold the slow key to cancel jog and sprint instead of pausing them.",
+	"nqr_jog_reload_jog_title" : "Keep jogging after reload",
+	"nqr_jog_reload_jog_desc" : "When a reload stops a sprint, keep jogging instead of standing still.",
+	"nqr_jog_lmb_cancel_title" : "LMB cancels running",
+	"nqr_jog_lmb_cancel_desc" : "Fire ends the current run like in vanilla."
+}
