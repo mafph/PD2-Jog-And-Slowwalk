@@ -1,0 +1,12 @@
+{
+	"jog_slow_walk_menu_title" : "Jog & Slow Walk",
+	"jog_slow_walk_menu_desc" : "慢跑和冲刺设置",
+	"jog_slow_walk_double_tap_title" : "双击窗口",
+	"jog_slow_walk_double_tap_desc" : "两次跑步键点击之间的秒数，视为冲刺。",
+	"jog_slow_walk_slow_cancel_title" : "慢走取消跑步",
+	"jog_slow_walk_slow_cancel_desc" : "按住慢走键以取消慢跑和冲刺，而不是暂停。",
+	"jog_slow_walk_reload_jog_title" : "装填后继续慢跑",
+	"jog_slow_walk_reload_jog_desc" : "当装填停止冲刺时，继续慢跑而不是站着不动。",
+	"jog_slow_walk_lmb_cancel_title" : "左键取消跑步",
+	"jog_slow_walk_lmb_cancel_desc" : "射击像原版一样结束当前跑步。"
+}

@@ -1,0 +1,12 @@
+{
+	"jog_slow_walk_menu_title" : "Jog & Slow Walk",
+	"jog_slow_walk_menu_desc" : "Настройки бега и спринта",
+	"jog_slow_walk_double_tap_title" : "Окно двойного нажатия",
+	"jog_slow_walk_double_tap_desc" : "Секунды между двумя нажатиями клавиши бега, которые считаются спринтом.",
+	"jog_slow_walk_slow_cancel_title" : "Медленный ход отменяет бег",
+	"jog_slow_walk_slow_cancel_desc" : "Удерживайте клавишу медленного хода, чтобы отменить бег и спринт вместо паузы.",
+	"jog_slow_walk_reload_jog_title" : "Продолжать бег после перезарядки",
+	"jog_slow_walk_reload_jog_desc" : "Когда перезарядка останавливает спринт, продолжайте бег вместо остановки.",
+	"jog_slow_walk_lmb_cancel_title" : "ЛКМ отменяет бег",
+	"jog_slow_walk_lmb_cancel_desc" : "Стрельба завершает текущий бег как в ванили."
+}
