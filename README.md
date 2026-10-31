@@ -65,7 +65,7 @@ Open them under **Options > Mod Options > Jog & Slow Walk**. Settings are saved 
 Speed, headbob and stamina values are not in the menu. They are the constants at the top of `lua/jog_slow_walk.lua`:
 
 ```lua
-local SPEED, HEADBOB, STAMINA, DOUBLE_TAP = 1.35, 1.5, 0.5, 0.2
+local SPEED, HEADBOB, STAMINA = 1.35, 1.5, 0.5
 local SLOW_SPEED, SLOW_HEADBOB = 0.7, 0.25
 ```
 

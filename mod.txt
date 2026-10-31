@@ -2,7 +2,7 @@
 	"name" : "Jog & Slow Walk",
 	"description" : "Adds a jog between walking and sprinting. Tap to jog, double tap to sprint, slow walk to move slower with reduced headbob. Aiming cancels the run.",
 	"author" : "I AM GREEN",
-	"version" : "3.16",
+	"version" : "3.17",
 	"blt_version" : 2,
 	"needs_restart" : true,
 
