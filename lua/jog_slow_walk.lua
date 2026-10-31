@@ -1,18 +1,10 @@
-local SPEED, HEADBOB, STAMINA, DOUBLE_TAP = 1.35, 1.5, 0.5, 0.2
+local SPEED, HEADBOB, STAMINA = 1.35, 1.5, 0.5
 local SLOW_SPEED, SLOW_HEADBOB = 0.7, 0.25
+local SLOW_BIND_ID = "jog_slow_walk_key"
 
 local jog = rawget(_G, "JOG_SLOW_WALK") or {}
 _G.JOG_SLOW_WALK = jog
-jog.speed_multiplier = jog.speed_multiplier or SPEED
-jog.headbob_multiplier = jog.headbob_multiplier or HEADBOB
-jog.slow_speed_multiplier = jog.slow_speed_multiplier or SLOW_SPEED
-jog.slow_headbob_multiplier = jog.slow_headbob_multiplier or SLOW_HEADBOB
-jog.double_tap = jog.double_tap or DOUBLE_TAP
-jog.debug = true
 jog.slow = false
-jog.slow_cancel = jog.slow_cancel ~= false
-jog.reload_jog = jog.reload_jog == true
-jog.lmb_cancel = jog.lmb_cancel == true
 
 local function blocks_run(s)
 	local c = rawget(_G, "PlayerMaskOff")
@@ -20,93 +12,39 @@ local function blocks_run(s)
 	return c ~= nil and getmetatable(s) == c
 end
 
-local SLOW_BIND_ID = "jog_slow_walk_key"
-local key_cache, bind_cache = {}, nil
-
--- Idstring und Key-Typ werden pro Tastenname nur einmal berechnet
-local function key_info(key)
-	local info = key_cache[key]
-
-	if not info then
-		local mouse = string.find(key, "mouse ") == 1
-		local wheel = mouse and string.find(key, "wheel") ~= nil
-
-		info = { mouse = mouse, wheel = wheel, id = Idstring((mouse and not wheel) and key:sub(7) or key) }
-		key_cache[key] = info
-	end
-
-	return info
-end
-
 local function key_down(key)
 	if not key or key == "" then return false end
 
-	local info = key_info(key)
-	local dev = info.mouse and Input:mouse() or Input:keyboard()
+	local mouse = key:find("mouse ", 1, true) == 1
+	local wheel = mouse and key:find("wheel", 1, true) ~= nil
+	local dev = mouse and Input:mouse() or Input:keyboard()
+	local id = Idstring((mouse and not wheel) and key:sub(7) or key)
 
 	-- Mausrad ist ein Einzel-Event, alles andere wird gehalten
-	if info.wheel then return dev:pressed(info.id) and true or false end
+	if wheel then return dev:pressed(id) end
 
-	return (dev:down(info.id) or dev:pressed(info.id)) and true or false
+	return dev:down(id) or dev:pressed(id)
 end
 
-local function alt_held()
-	if not bind_cache and BLT.Keybinds then
-		bind_cache = BLT.Keybinds:get_keybind(jog.keybind_id or SLOW_BIND_ID)
-	end
+local slow_bind
 
-	local k = bind_cache and bind_cache:Key()
+local function slow_held()
+	slow_bind = slow_bind or (BLT.Keybinds and BLT.Keybinds:get_keybind(SLOW_BIND_ID))
 
-	return k ~= nil and k ~= "" and key_down(k)
-end
-
--- Pro Frame gecachte Lookups (wird am Anfang von handle_input geleert)
-local frame = {}
-
-local function reset_frame()
-	frame.no_run, frame.carry = nil, nil
-end
-
-local function no_run_rule()
-	if frame.no_run == nil then
-		frame.no_run = managers.player:get_player_rule("no_run") and true or false
-	end
-
-	return frame.no_run
+	return slow_bind ~= nil and key_down(slow_bind:Key())
 end
 
 -- Schwere Taschen (can_run = false) duerfen nicht gejoggt/gesprintet werden.
 -- Wir rufen _start_action_running selbst auf und umgehen damit die Vanilla-Pruefung.
 local function carry_blocks_run(s)
-	if frame.carry == nil then
-		local name = s._tweak_data_name
-		local types = tweak_data.carry and tweak_data.carry.types
-		local ct = name and types and types[name]
+	local types = tweak_data.carry and tweak_data.carry.types
+	local ct = types and s._tweak_data_name and types[s._tweak_data_name]
 
-		frame.carry = ct ~= nil and not ct.can_run
-			and not managers.player:has_category_upgrade("carry", "movement_penalty_nullifier")
-	end
-
-	return frame.carry
+	return ct ~= nil and not ct.can_run
+		and not managers.player:has_category_upgrade("carry", "movement_penalty_nullifier")
 end
 
-local function can_move(s)
-	local d = s._state_data
-
-	if blocks_run(s) or s._running or s._slowdown_run_prevent then return false end
-	if d and (d.in_air or d.on_ladder or d.lying) then return false end
-	if d and d.ducking and not jog.slow then return false end
-	if carry_blocks_run(s) or no_run_rule() then return false end
-
-	return s._move_dir ~= nil and mvector3.length(s._move_dir) >= 0.01
-end
-
-local function can_slow(s)
-	local d = s._state_data
-
-	if blocks_run(s) then return false end
-	if d and (d.in_air or d.on_ladder or d.lying) then return false end
-
+local function moving(s)
 	return s._move_dir ~= nil and mvector3.length(s._move_dir) >= 0.01
 end
 
@@ -118,8 +56,20 @@ local function moving_forward(s)
 	return m ~= nil and m.y > 0.1
 end
 
+local function can_slow(s)
+	local d = s._state_data
+
+	return not blocks_run(s) and not (d and (d.in_air or d.on_ladder or d.lying)) and moving(s)
+end
+
 local function can_jog(s)
-	return jog.enabled and can_move(s) and moving_forward(s)
+	if not jog.enabled or not can_slow(s) then return false end
+
+	local d = s._state_data
+
+	if s._running or s._slowdown_run_prevent or (d and d.ducking and not jog.slow) then return false end
+
+	return not carry_blocks_run(s) and not managers.player:get_player_rule("no_run") and moving_forward(s)
 end
 
 local function compat_ok(s)
@@ -142,23 +92,19 @@ local function run_and_shoot(s)
 	return b ~= nil and b.run_and_shoot_allowed ~= nil and b:run_and_shoot_allowed() and true or false
 end
 
+local function clear(rs)
+	rs.mode, rs.hold_sprint, rs.tap_t = 0, false, nil
+end
+
 local function handle_input(self, t, dt, paused)
 	local input = Hooks:GetReturn()
 
-	if not input then return nil end
-
-	reset_frame()
+	if not input then return end
 
 	if not compat_ok(self) then
 		jog.enabled = false
 
 		return input
-	end
-
-	if not jog.active then
-		jog.active = true
-		log("[jog_slow_walk] hold_to_run=" .. tostring(self._setting_hold_to_run and true or false) .. " "
-			.. (self._setting_hold_to_run and "hold run = jog, double tap = sprint" or "toggle: tap = jog, double tap = sprint"))
 	end
 
 	if blocks_run(self) then
@@ -176,10 +122,7 @@ local function handle_input(self, t, dt, paused)
 		self._jog_slow_walk_run = rs
 	end
 
-	if self._move_dir == nil or mvector3.length(self._move_dir) < 0.01 then
-		rs.mode, rs.hold_sprint, rs.tap_t = 0, false, nil
-	end
-
+	if not moving(self) then clear(rs) end
 	if rs.mode == 1 and not moving_forward(self) then rs.mode = 0 end
 
 	local pressed, released, held = input.btn_run_press, input.btn_run_release, input.btn_run_state
@@ -188,9 +131,8 @@ local function handle_input(self, t, dt, paused)
 
 	if pressed then jog._break = false end
 
-	jog.slow = alt_held()
+	jog.slow = slow_held()
 
-	local window = jog.double_tap or DOUBLE_TAP
 	local sprint, gap
 
 	if pressed then
@@ -200,31 +142,29 @@ local function handle_input(self, t, dt, paused)
 		rs.tap_t = t
 	end
 
+	local double_tap = gap ~= nil and gap >= 0 and gap <= jog.double_tap
+
 	if self._setting_hold_to_run then
-		if pressed then rs.hold_sprint = gap >= 0 and gap <= window end
+		if pressed then rs.hold_sprint = double_tap end
 		if not held then rs.hold_sprint = false end
 
 		jog.enabled = held and not rs.hold_sprint and not jog._break
 		sprint = rs.hold_sprint and held and not jog._break
 	else
-		if pressed then rs.mode = gap >= 0 and gap <= window and 2 or (rs.mode == 0 and 1 or 0) end
+		if pressed then rs.mode = double_tap and 2 or (rs.mode == 0 and 1 or 0) end
 
 		jog.enabled = rs.mode == 1
 		sprint = rs.mode == 2
 	end
 
-	if jog.debug and pressed then
-		log("[jog_slow_walk] " .. (self._setting_hold_to_run and "hold" or "toggle") .. " mode=" .. tostring(rs.mode)
-			.. " sprint=" .. tostring(sprint) .. " gap=" .. tostring(gap) .. " slow=" .. tostring(jog.slow))
-	end
-
+	-- Zielen bricht Jog/Sprint ab, ausser die Waffe erlaubt Laufen und Schiessen
 	if (input.btn_steelsight_press or input.btn_steelsight_state) and (jog.enabled or sprint) and not run_and_shoot(self) then
-		rs.mode, rs.hold_sprint, rs.tap_t = 0, false, nil
+		clear(rs)
 		jog.enabled, sprint = false, false
 	end
 
 	if jog.slow then
-		if jog.slow_cancel then rs.mode, rs.hold_sprint, rs.tap_t = 0, false, nil end
+		if jog.slow_cancel then clear(rs) end
 		jog.enabled, sprint = false, false
 	end
 
@@ -241,11 +181,9 @@ local function handle_input(self, t, dt, paused)
 		end
 	end
 
-	local weap = self._equipped_unit and self._equipped_unit:base()
-
-	if jog.lmb_cancel and not pressed and (input.btn_primary_attack_state or self._shooting) and not (weap and weap.run_and_shoot_allowed and weap:run_and_shoot_allowed()) then
-		rs.hold_sprint, sprint = false, false
-		rs.mode, jog.enabled = 0, false
+	if jog.lmb_cancel and not pressed and (input.btn_primary_attack_state or self._shooting) and not run_and_shoot(self) then
+		clear(rs)
+		jog.enabled, sprint = false, false
 		jog._break = true
 	end
 
@@ -264,6 +202,7 @@ local function handle_input(self, t, dt, paused)
 		if input.btn_duck_press then rs.tap_t = nil end
 
 		local sprinting = rs.mode == 2 or rs.hold_sprint
+
 		jog.enabled = stand and not sprinting and not jog.slow
 		sprint = stand and sprinting and not jog.slow
 	end
@@ -279,23 +218,14 @@ local function handle_input(self, t, dt, paused)
 		self._running_wanted = false
 
 		if self._running then
+			self:_end_action_running(t)
+
+			-- Slow walk beendet den Lauf sofort, ohne Auslauf-Phase
 			if jog.slow then
-				self:_end_action_running(t)
 				self._end_running_expire_t = nil
 				self:set_running(false)
-			else
-				self:_end_action_running(t)
 			end
 		end
-	end
-
-	if jog.debug and (jog.slow ~= jog.last_slow or (self._running or false) ~= (jog.last_running or false)) then
-		jog.last_slow = jog.slow
-		jog.last_running = self._running or false
-		log("[jog_slow_walk] slow=" .. tostring(jog.slow) .. " running=" .. tostring(self._running or false)
-			.. " jog=" .. tostring(jog.enabled) .. " sprint=" .. tostring(sprint and true or false)
-			.. " mode=" .. tostring(rs.mode) .. " hold_sprint=" .. tostring(rs.hold_sprint)
-			.. " move=" .. tostring(self._move_dir ~= nil and mvector3.length(self._move_dir) >= 0.01))
 	end
 
 	if not paused then drain_stamina(self, dt) end
@@ -309,8 +239,8 @@ Hooks:PostHook(PlayerStandard, "_get_max_walk_speed", "jog_slow_walk_get_max_wal
 	local v = Hooks:GetReturn()
 
 	if force_run then return v end
-	if jog.slow and can_slow(self) then return v * (jog.slow_speed_multiplier or SLOW_SPEED) end
-	if can_jog(self) then return v * (jog.speed_multiplier or SPEED) end
+	if jog.slow and can_slow(self) then return v * SLOW_SPEED end
+	if can_jog(self) then return v * SPEED end
 
 	return v
 end)
@@ -318,8 +248,8 @@ end)
 Hooks:PostHook(PlayerStandard, "_get_walk_headbob", "jog_slow_walk_get_walk_headbob", function(self)
 	local h = Hooks:GetReturn()
 
-	if jog.slow and can_slow(self) then return h * (jog.slow_headbob_multiplier or SLOW_HEADBOB) end
-	if can_jog(self) then return h * (jog.headbob_multiplier or HEADBOB) end
+	if jog.slow and can_slow(self) then return h * SLOW_HEADBOB end
+	if can_jog(self) then return h * HEADBOB end
 
 	return h
 end)
